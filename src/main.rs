@@ -11,11 +11,12 @@ mod quantization;
 
 type DMatrixf32 = OMatrix<f32, Dyn, Dyn>;
 
-// This function takes one image channel as the input and returns the 
-// DCT processed output for the same.
-// We use DCT on the Image to convert it from Spectral Domain 
-// (Y-Cb-Cr Channels) to its equivalent Frequency Domain.
-
+/*
+This function takes one image channel as the input and returns the 
+DCT processed output for the same.
+We use DCT on the Image to convert it from Spectral Domain 
+(Y-Cb-Cr Channels) to its equivalent Frequency Domain.
+*/
 fn compressed_information(image_channel : DMatrixf32, sub_matrix_size : usize, compression_percentage : f32, restricting_factor : usize) -> Vec<DMatrixf32> {
     let h = image_channel.nrows();
     let w = image_channel.ncols(); 
@@ -28,11 +29,12 @@ fn compressed_information(image_channel : DMatrixf32, sub_matrix_size : usize, c
             c = c.view((0, 0), (restricting_factor, restricting_factor)).into(); // 2D, 5x5
             output.push(c); // plopped onto 3D
             
-            // we do this (w/N)*(h/N) = (500/8)*(500/8) = 3906 times
-            // so basically the concatenated info is the compressed data for
-            // each of the (w/N)*(h/N) matrices (N*N each)
-            // but we are only taking restricting_factorxrestricting_factor submatrix of it
-            // because we are only interested in low frequency values
+            /*
+            This is done (w/sub_matrix_size)*(h/sub_matrix_size) times
+            Each submatrix represents sub_matrix_size in the original image channel,
+            but we are only taking restricting_factorxrestricting_factor submatrix of it
+            because we are only interested in low frequency values.
+            */
         }
     }
 
@@ -89,11 +91,11 @@ fn main() {
     let processed_width = buf.width() / (sub_matrix_size as u32);
     let processed_height = buf.height() / (sub_matrix_size as u32);
 
-    // To build image from raw data, need 1d vector with sequential (r, g, b, a) u8 values
-    // there are processed_len matrices, each with restricting_factor*restricting_factor values
+    // To build image from raw data, we need a 1d vector with sequential (r, g, b, a) u8 values.
+    // There are processed_len matrices, each with restricting_factor*restricting_factor Rgba values.
     let mut raw : Vec<u8> = vec![0; 4 * processed_len * restricting_factor * restricting_factor];
-    let real_width = (processed_width * (restricting_factor as u32));
-    let real_height = (processed_height * (restricting_factor as u32));
+    let real_width = processed_width * (restricting_factor as u32);
+    let real_height = processed_height * (restricting_factor as u32);
 
     // index in the raw rgba array
     let mut raw_index : usize = 0;
@@ -111,10 +113,6 @@ fn main() {
                 let g_val = y_val - 0.344*(cb_val - 128.0) - 0.714*(cr_val - 128.0);
                 let b_val = y_val + 1.773*(cb_val - 128.0);
 
-                if (r_val > 255.0)
-                {
-                    println!("{}", r_val);
-                }
                 //assert!(r_val <= 255.0);
                 //assert!(g_val <= 255.0);
                 //assert!(b_val <= 255.0);
@@ -130,5 +128,5 @@ fn main() {
 
     let image_out = RgbImage::from_raw(real_width, real_height, raw)
         .expect("container should have the right size for the image dimensions");
-    image_out.save("./test/out.png");
+    let _ = image_out.save("./test/out.png");
 }
