@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 
 use std::env;
 use std::path::Path;
-use image::{Pixel, RgbImage};
+use image::RgbImage;
 use image::imageops::FilterType;
 use na::{OMatrix, Dyn};
 
@@ -31,7 +31,7 @@ fn compressed_information(image_channel : DMatrixf32, sub_matrix_size : usize, c
             
             /*
             This is done (w/sub_matrix_size)*(h/sub_matrix_size) times
-            Each submatrix represents sub_matrix_size in the original image channel,
+            Each submatrix represents sub_matrix_size pixels in the original image channel,
             but we are only taking restricting_factorxrestricting_factor submatrix of it
             because we are only interested in low frequency values.
             */
