@@ -9,6 +9,10 @@ use std::path::Path;
 use image::RgbImage;
 use image::imageops::FilterType;
 use na::{OMatrix, Dyn};
+use std::time::Instant;
+use std::thread;
+use std::sync::mpsc;
+use std::sync::Arc;
 
 use crate::dct::DCTCalculator;
 use crate::quantization::QuantizationCalculator;
@@ -16,6 +20,9 @@ use crate::quantization::QuantizationCalculator;
 type DMatrixf32 = OMatrix<f32, Dyn, Dyn>;
 
 fn main() {
+
+    let now = Instant::now();
+
     let file : String;
     let resize_height : u32;
     let resize_width : u32;
@@ -48,10 +55,10 @@ fn main() {
     for i in 0..imgx {
         for j in 0..imgy {
             let pixel = buf.get_pixel(i as u32, j as u32);
-            // To YCbCr, then mapped from 0-255 to -128-128
+            // To YCbCr, then mapped from 0-255 to -128-127
             y[(i, j)] = (0.299*(pixel[0] as f32) + 0.587*(pixel[1] as f32) + 0.114*(pixel[2] as f32) - 128.0).into();
-            cb[(i, j)] = (128.0 - 0.169*(pixel[0] as f32) - 0.331*(pixel[1] as f32) + 0.500*(pixel[2] as f32) - 128.0).into();
-            cr[(i, j)] = (128.0 + 0.500*(pixel[0] as f32) + -0.419*(pixel[1] as f32) - 0.081*(pixel[2] as f32) - 128.0).into();
+            cb[(i, j)] = (-0.169*(pixel[0] as f32) - 0.331*(pixel[1] as f32) + 0.500*(pixel[2] as f32)).into();
+            cr[(i, j)] = (0.500*(pixel[0] as f32) + -0.419*(pixel[1] as f32) - 0.081*(pixel[2] as f32)).into();
         }
     }
 
@@ -60,9 +67,45 @@ fn main() {
     let sub_matrix_size : usize = 8;
     let compression_percentage = 50.0_f32;
 
+    // --> Multithreaded implementation... 
+    // Only improved duration of whole program by 4% so will avoid unnecessary complexity for now
+    /*let quant_calc = quantization::QuantizationCalculator::new(compression_percentage);
+    let dct_calc = dct::DCTCalculator::new(sub_matrix_size);
+    let comp = Arc::new(image_compressor::ImageCompressor::new(dct_calc, quant_calc));
+    let comp1 = Arc::clone(&comp);
+    let comp2 = Arc::clone(&comp);
+    let comp3 = Arc::clone(&comp);
+    let comp4 = Arc::clone(&comp);
+    let comp5 = Arc::clone(&comp);
+    let comp6 = Arc::clone(&comp);
+    
+    // TODO: multithread
+    let (tx_y, rx_y) = mpsc::channel();
+    let (tx_cb, rx_cb) = mpsc::channel();
+    let (tx_cr, rx_cr) = mpsc::channel();
+    thread::spawn(move || { tx_y.send(comp1.compress_information(y, sub_matrix_size, 50.0, restricting_factor)).unwrap(); });
+    thread::spawn(move || { tx_cb.send(comp2.compress_information(cb, sub_matrix_size, 50.0, restricting_factor)).unwrap(); });
+    thread::spawn(move || { tx_cr.send(comp3.compress_information(cr, sub_matrix_size, 50.0, restricting_factor)).unwrap(); });
+    let processed_y = rx_y.recv().unwrap();
+    let processed_cb = rx_cb.recv().unwrap();
+    let processed_cr = rx_cr.recv().unwrap();
+
+    // TODO: multithread
+    let processed_width = (buf.width() as usize) / sub_matrix_size;
+    let (tx_dy, rx_dy) = mpsc::channel();
+    let (tx_dcb, rx_dcb) = mpsc::channel();
+    let (tx_dcr, rx_dcr) = mpsc::channel();
+    thread::spawn(move || { tx_dy.send(comp4.decompress_information(processed_y, processed_width, 50.0, restricting_factor)).unwrap(); });
+    thread::spawn(move || { tx_dcb.send(comp5.decompress_information(processed_cb, processed_width, 50.0, restricting_factor)).unwrap(); });
+    thread::spawn(move || { tx_dcr.send(comp6.decompress_information(processed_cr, processed_width, 50.0, restricting_factor)).unwrap(); });
+    let decompressed_y = rx_dy.recv().unwrap();
+    let decompressed_cb = rx_dcb.recv().unwrap();
+    let decompressed_cr = rx_dcr.recv().unwrap();*/
+
+    // --> Not multithreaded but still gets the job done:
     let quant_calc = quantization::QuantizationCalculator::new(compression_percentage);
     let dct_calc = dct::DCTCalculator::new(sub_matrix_size);
-    let mut comp = image_compressor::ImageCompressor::new(dct_calc, quant_calc);
+    let comp = image_compressor::ImageCompressor::new(dct_calc, quant_calc);
     
     let processed_y = comp.compress_information(y, sub_matrix_size, 50.0, restricting_factor);
     let processed_cb = comp.compress_information(cb, sub_matrix_size, 50.0, restricting_factor);
@@ -83,6 +126,7 @@ fn main() {
 
     for i in 0..real_height {
         for j in 0..real_width {
+            // map YCbCr values back from -128-127 to 0-255
             let y_val = decompressed_y[(i as usize, j as usize)] + 128.0;
             let cb_val = decompressed_cb[(i as usize, j as usize)] + 128.0;
             let cr_val = decompressed_cr[(i as usize, j as usize)] + 128.0;
@@ -108,4 +152,7 @@ fn main() {
 
     println!("Saving decompressed image out to ./test/out.png...");
     let _ = image_out.save("./test/out.png");
+
+    let elapsed = now.elapsed();
+    println!("Elapsed: {:.2?}", elapsed);
 }

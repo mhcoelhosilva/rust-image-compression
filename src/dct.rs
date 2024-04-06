@@ -14,16 +14,12 @@ impl DCTCalculator {
 
     pub fn new(n : usize) -> Self {
         let mut dct_cal = DCTCalculator { dct_matrices : HashMap::new() };
-        dct_cal.generate_n_point_dct(n);
+        let dct_matrix = dct_cal.generate_n_point_dct(n);
+        dct_cal.dct_matrices.insert(n, dct_matrix);
         dct_cal
     }
 
-    fn generate_n_point_dct(&mut self, n : usize) -> DMatrixf32 {
-
-        if self.dct_matrices.contains_key(&n) {
-            return self.dct_matrices.get(&n).unwrap().clone();
-        }
-
+    fn generate_n_point_dct(&self, n : usize) -> DMatrixf32 {
         let mut d = DMatrixf32::zeros(n, n);
         for i in 0..n {
             for j in 0..n {
@@ -35,14 +31,22 @@ impl DCTCalculator {
             }
         }
 
-        self.dct_matrices.insert(n, d.clone());
+        d
+    }
+
+    fn get_n_point_dct(&self, n : usize) -> DMatrixf32 {
+        if self.dct_matrices.contains_key(&n) {
+            return self.dct_matrices.get(&n).unwrap().clone();
+        }
+
+        let mut d = self.generate_n_point_dct(n);
 
         d
     }
 
     // This function calculates the DCT transform using the DCT Matrix using formula 5 (pg 3 in the paper).
-    pub fn calculate_dct(&mut self, a : DMatrixf32, n : usize) -> DMatrixf32 {
-        let dct_matrix = self.generate_n_point_dct(n);
+    pub fn calculate_dct(&self, a : DMatrixf32, n : usize) -> DMatrixf32 {
+        let dct_matrix = self.get_n_point_dct(n);
         let t = dct_matrix.clone().transpose();
         assert_eq!(dct_matrix.ncols(), a.nrows());
         let temp = dct_matrix * a;
@@ -50,8 +54,8 @@ impl DCTCalculator {
         temp * t
     }
 
-    pub fn calculate_inverse_dct(&mut self, a : DMatrixf32, n : usize) -> DMatrixf32 {
-        let dct_matrix = self.generate_n_point_dct(n);
+    pub fn calculate_inverse_dct(&self, a : DMatrixf32, n : usize) -> DMatrixf32 {
+        let dct_matrix = self.get_n_point_dct(n);
         let t = dct_matrix.clone().transpose();
         assert_eq!(t.ncols(), a.nrows());
         let temp = t * a;

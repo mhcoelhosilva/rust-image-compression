@@ -18,7 +18,7 @@ impl ImageCompressor {
         compressor
     }
 
-    pub fn compress_information(&mut self, image_channel : DMatrixf32, sub_matrix_size : usize, compression_percentage : f32, restricting_factor : usize) -> Vec<DMatrixf32> {
+    pub fn compress_information(&self, image_channel : DMatrixf32, sub_matrix_size : usize, compression_percentage : f32, restricting_factor : usize) -> Vec<DMatrixf32> {
         let h = image_channel.nrows();
         let w = image_channel.ncols(); 
         let mut output = Vec::<DMatrixf32>::new();
@@ -42,7 +42,7 @@ impl ImageCompressor {
         output
     }
 
-    pub fn decompress_information(&mut self, sub_matrices : Vec<DMatrixf32>, new_width : usize, compression_percentage : f32, restricting_factor : usize) -> DMatrixf32 {
+    pub fn decompress_information(&self, sub_matrices : Vec<DMatrixf32>, new_width : usize, compression_percentage : f32, restricting_factor : usize) -> DMatrixf32 {
         
         let num_submatrices = sub_matrices.len();
         let full_matrix_size = num_submatrices * restricting_factor;
@@ -55,9 +55,6 @@ impl ImageCompressor {
             let row = k / new_width;
 
             let sub_matrix = sub_matrices[k].clone();
-            //let sub_matrix_dim = sub_matrix.nrows();
-            //let sub_matrix = sub_matrix.insert_rows(sub_matrix_dim, 3, 0.0_f32);
-            //let sub_matrix = sub_matrix.insert_columns(sub_matrix_dim, 3, 0.0_f32);
             let unquantized_submatrix = self.quant_calc.dequantize(sub_matrix, compression_percentage);
             let unquantized_submatrix_dim = unquantized_submatrix.nrows();
             let n = self.dct_calc.calculate_inverse_dct(unquantized_submatrix, unquantized_submatrix_dim);

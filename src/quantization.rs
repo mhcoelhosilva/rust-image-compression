@@ -15,17 +15,12 @@ impl QuantizationCalculator {
 
     pub fn new(required_quality_level : f32) -> Self {
         let mut quant_calc = QuantizationCalculator { quantization_matrices : HashMap::new() };
-        quant_calc.get_quantization_matrix(required_quality_level);
+        let quant_matrix = quant_calc.get_quantization_matrix(required_quality_level);
+        quant_calc.quantization_matrices.insert(required_quality_level as u32, quant_matrix);
         quant_calc
     }
 
-    fn get_quantization_matrix(&mut self, required_quality_level : f32) -> DMatrixf32 {
-
-        let qual = required_quality_level as u32;
-        if self.quantization_matrices.contains_key(&qual) {
-            return self.quantization_matrices.get(&qual).unwrap().clone();
-        }
-
+    fn generate_quantization_matrix(&self, required_quality_level : f32) -> DMatrixf32 {
         let mut q = dmatrix![16.0_f32, 11.0_f32, 10.0_f32, 16.0_f32, 24_f32, 40_f32, 51_f32, 61_f32;
                          12.0_f32, 12.0_f32, 14.0_f32, 19.0_f32, 26_f32, 58_f32, 60_f32, 55_f32;
                          14.0_f32, 13.0_f32, 16.0_f32, 24.0_f32, 40_f32, 57_f32, 69_f32, 56_f32;
@@ -44,13 +39,24 @@ impl QuantizationCalculator {
             //q = q.iter().map(|i| {num::clamp(i, 0, 255)}).collect();
         }
 
-        self.quantization_matrices.insert(qual, q.clone());
+        q
+    }
+
+    fn get_quantization_matrix(&self, required_quality_level : f32) -> DMatrixf32 {
+
+        let qual = required_quality_level as u32;
+        if self.quantization_matrices.contains_key(&qual) {
+            return self.quantization_matrices.get(&qual).unwrap().clone();
+        }
+
+        let q = self.generate_quantization_matrix(required_quality_level);
+
         q
     }
 
     //This function gives us the quantized output which can be used to 
     //find the relevant compressions in the image.
-    pub fn quantize(&mut self, d : DMatrixf32, required_quality_level : f32) -> DMatrixf32 {
+    pub fn quantize(&self, d : DMatrixf32, required_quality_level : f32) -> DMatrixf32 {
         let q = self.get_quantization_matrix(required_quality_level);
         let mut q_inv = q.try_inverse().unwrap();
         if d.ncols() < q_inv.nrows()
@@ -61,7 +67,7 @@ impl QuantizationCalculator {
         d * q_inv
     }
 
-    pub fn dequantize(&mut self, c : DMatrixf32, required_quality_level : f32) -> DMatrixf32 {
+    pub fn dequantize(&self, c : DMatrixf32, required_quality_level : f32) -> DMatrixf32 {
         let mut q = self.get_quantization_matrix(required_quality_level);
         if q.ncols() > c.nrows()
         {
