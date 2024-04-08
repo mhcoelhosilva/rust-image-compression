@@ -11,9 +11,6 @@ use image::RgbImage;
 use image::imageops::FilterType;
 use na::{OMatrix, Dyn};
 use std::time::Instant;
-//use std::thread;
-//use std::sync::mpsc;
-//use std::sync::Arc;
 use image::save_buffer_with_format;
 
 use crate::dct::DCTCalculator;
