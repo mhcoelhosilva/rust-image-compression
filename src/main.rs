@@ -111,14 +111,25 @@ fn main() {
     let processed_cb = comp.compress_information(cb, sub_matrix_size, 50.0, restricting_factor);
     let processed_cr = comp.compress_information(cr, sub_matrix_size, 50.0, restricting_factor);
 
+    let processed_len = processed_y.len();
     let processed_width = (buf.width() as usize) / sub_matrix_size;
+    let processed_height = (buf.height() as usize) / sub_matrix_size;
+    println!("Processed width = {}, processed height = {}", processed_width, processed_height);
+    println!("Processed len = {}, processed_width * processed_height = {}", processed_len, processed_width * processed_height);
     let decompressed_y = comp.decompress_information(processed_y, processed_width, 50.0, restricting_factor);
     let decompressed_cb = comp.decompress_information(processed_cb, processed_width, 50.0, restricting_factor);
     let decompressed_cr = comp.decompress_information(processed_cr, processed_width, 50.0, restricting_factor);
 
-    // To build image from raw data, we need a 1d vector with sequential (r, g, b, a) u8 values.
     let real_width = decompressed_y.ncols();
     let real_height = decompressed_y.nrows();
+    println!("Real width: {}, real height: {}", real_width, real_height);
+
+    // Sanity check dimensions
+    assert_eq!(real_height * real_width, processed_len * restricting_factor * restricting_factor);
+    assert!(real_height * real_width < imgx * imgy);
+    assert_eq!(processed_len, processed_height * processed_width);
+
+    // To build image from raw data, we need a 1d vector with sequential (r, g, b, a) u8 values.
     let mut raw : Vec<u8> = vec![0; 4 * real_width * real_height];
     
     // index in the raw rgba array

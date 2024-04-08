@@ -45,7 +45,8 @@ impl ImageCompressor {
     pub fn decompress_information(&self, sub_matrices : Vec<DMatrixf32>, new_width : usize, compression_percentage : f32, restricting_factor : usize) -> DMatrixf32 {
         
         let num_submatrices = sub_matrices.len();
-        let full_matrix_size = num_submatrices * restricting_factor;
+        let full_matrix_size = new_width * restricting_factor;
+        println!("Full matrix size: {}", full_matrix_size * full_matrix_size);
         let mut full_matrix = DMatrixf32::zeros(full_matrix_size, full_matrix_size);
 
         // k : submatrix index
