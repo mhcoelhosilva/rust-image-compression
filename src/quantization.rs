@@ -77,3 +77,18 @@ impl QuantizationCalculator {
         q * c
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_inverse() {
+        let compression_percentage = 50.0_f32;
+        let quant_calc = QuantizationCalculator::new(compression_percentage);
+        let sub_matrix = DMatrixf32::identity(8, 8);
+        let quantized = quant_calc.quantize(sub_matrix.clone(), compression_percentage);
+        let dequantized = quant_calc.dequantize(quantized, compression_percentage);
+        assert!(dequantized.is_identity(0.01_f32));
+    }
+}

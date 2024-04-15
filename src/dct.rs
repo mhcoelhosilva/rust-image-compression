@@ -26,7 +26,7 @@ impl DCTCalculator {
                 if i == 0 {
                     d[(i, j)] = 1.0/((n as f32).sqrt());
                 } else {
-                    d[(i, j)] = (2.0/((n as f32).sqrt())) * (((2.0*(j as f32) + 1.0)*(i as f32)*f32::consts::PI)/(2.0*(n as f32))).cos();
+                    d[(i, j)] = (2.0/(n as f32)).sqrt() * (((2.0*(j as f32) + 1.0)*(i as f32)*f32::consts::PI)/(2.0*(n as f32))).cos();
                 }
             }
         }
@@ -51,7 +51,7 @@ impl DCTCalculator {
         assert_eq!(dct_matrix.ncols(), a.nrows());
         let temp = dct_matrix * a;
         assert_eq!(temp.ncols(), t.nrows());
-        temp * t
+        temp * t // dct * a * dct_transpose
     }
 
     pub fn calculate_inverse_dct(&self, a : DMatrixf32, n : usize) -> DMatrixf32 {
@@ -60,6 +60,21 @@ impl DCTCalculator {
         assert_eq!(t.ncols(), a.nrows());
         let temp = t * a;
         assert_eq!(temp.ncols(), dct_matrix.nrows());
-        temp * dct_matrix
+        temp * dct_matrix // dc_transpose * a * dct
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_inverse() {
+        let sub_matrix_size = 8;
+        let dct_calc = DCTCalculator::new(sub_matrix_size);
+        let sub_matrix = DMatrixf32::identity(sub_matrix_size, sub_matrix_size);
+        let dct = dct_calc.calculate_dct(sub_matrix.clone(), sub_matrix_size);
+        let inversed = dct_calc.calculate_inverse_dct(dct, sub_matrix_size);
+        assert!(inversed.is_identity(0.01_f32));
     }
 }
