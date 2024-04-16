@@ -59,12 +59,12 @@ impl QuantizationCalculator {
     pub fn quantize(&self, d : DMatrixf32, required_quality_level : f32) -> DMatrixf32 {
         let q = self.get_quantization_matrix(required_quality_level);
         let mut q_inv = q.try_inverse().unwrap();
-        if d.ncols() < q_inv.nrows()
+        if d.nrows() < q_inv.ncols()
         {
-            q_inv = q_inv.view((0, 0), (d.ncols(), d.ncols())).into();
+            q_inv = q_inv.view((0, 0), (d.nrows(), d.nrows())).into();
         }
-        assert_eq!(d.ncols(), q_inv.nrows());
-        d * q_inv
+        assert_eq!(d.nrows(), q_inv.ncols());
+        q_inv * d
     }
 
     pub fn dequantize(&self, c : DMatrixf32, required_quality_level : f32) -> DMatrixf32 {
